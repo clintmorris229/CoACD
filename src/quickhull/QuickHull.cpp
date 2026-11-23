@@ -337,8 +337,8 @@ namespace quickhull {
 			}
 		}
 		
-		// Cleanup
-		m_indexVectorPool.clear();
+		// The index vector pool is kept so that a reused QuickHull object recycles
+		// its vectors; they are cleared when taken from the pool.
 		// return true;
 		return flag;
 	}
