@@ -633,7 +633,7 @@ namespace coacd
         }
     }
 
-    bool ComputeBestRvClippingPlane(Model &m, Params &params, vector<Plane> &planes, Plane &bestplane, double &bestcost)
+    bool ComputeBestRvClippingPlane(Model &m, Params &params, vector<Plane> &planes, Plane &bestplane, double &bestcost, BestClip &best)
     {
         if ((int)planes.size() == 0)
             return false;
@@ -646,6 +646,7 @@ namespace coacd
 
             flag = Clip(m, pos, neg, planes[i], cut_area);
             double H;
+            double h_pos = INF, h_neg = INF;
             if (!flag)
                 H = INF;
             else
@@ -656,7 +657,10 @@ namespace coacd
                 pos.ComputeAPX(posCH);
                 neg.ComputeAPX(negCH);
 
-                H = ComputeTotalRv(m, pos, posCH, neg, negCH, params.rv_k, planes[i]);
+                // Same as ComputeTotalRv, keeping both costs.
+                h_pos = ComputeRv(pos, posCH, params.rv_k);
+                h_neg = ComputeRv(neg, negCH, params.rv_k);
+                H = max(h_pos, h_neg);
             }
 
             if (H < H_min)
@@ -664,6 +668,11 @@ namespace coacd
                 H_min = H;
                 bestplane = planes[i];
                 bestcost = H;
+                best.valid = true;
+                best.pos = std::move(pos);
+                best.neg = std::move(neg);
+                best.cost_pos = h_pos;
+                best.cost_neg = h_neg;
             }
         }
 
@@ -723,12 +732,30 @@ namespace coacd
             {
                 break;
             }
-            ComputeBestRvClippingPlane(current_state.current_parts[current_state.worst_part_idx].current_mesh, params, planes, bestplane, bestcost);
+            BestClip best;
+            ComputeBestRvClippingPlane(current_state.current_parts[current_state.worst_part_idx].current_mesh, params, planes, bestplane, bestcost, best);
 
+            // Reuse the halves and costs of the best plane, which were already
+            // computed above, instead of clipping and computing the hulls again.
             Model pos, neg, posCH, negCH;
-            bool clipf = Clip(current_state.current_parts[current_state.worst_part_idx].current_mesh, pos, neg, bestplane, cut_area);
-            if (!clipf)
-                throw runtime_error("Wrong MCTS clip proposal!");
+            double cost_pos, cost_neg;
+            if (best.valid)
+            {
+                pos = std::move(best.pos);
+                neg = std::move(best.neg);
+                cost_pos = best.cost_pos;
+                cost_neg = best.cost_neg;
+            }
+            else
+            {
+                bool clipf = Clip(current_state.current_parts[current_state.worst_part_idx].current_mesh, pos, neg, bestplane, cut_area);
+                if (!clipf)
+                    throw runtime_error("Wrong MCTS clip proposal!");
+                pos.ComputeAPX(posCH);
+                neg.ComputeAPX(negCH);
+                cost_pos = ComputeRv(pos, posCH, params.rv_k);
+                cost_neg = ComputeRv(neg, negCH, params.rv_k);
+            }
             current_path.push_back(bestplane);
             vector<double> _current_costs;
             vector<Part> _current_parts;
@@ -740,10 +767,6 @@ namespace coacd
                     _current_parts.push_back(current_state.current_parts[i]);
                 }
             }
-            pos.ComputeAPX(posCH);
-            neg.ComputeAPX(negCH);
-            double cost_pos = ComputeRv(pos, posCH, params.rv_k);
-            double cost_neg = ComputeRv(neg, negCH, params.rv_k);
 
             Part part_pos(params, pos);
             Part part_neg(params, neg);
