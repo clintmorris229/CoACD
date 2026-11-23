@@ -59,7 +59,7 @@ namespace coacd
         ori_meshCH_volume = MeshVolume(ch);
         current_cost = 0; // accumulated score
     }
-    State::State(Params _params, vector<double> &_current_costs, vector<Part> &_current_parts, Model &_initial_part)
+    State::State(Params _params, vector<double> &_current_costs, vector<Part> &_current_parts, const State &parent)
     {
         params = _params;
         terminal_threshold = params.threshold;
@@ -68,12 +68,10 @@ namespace coacd
         current_costs = _current_costs;
         current_parts = _current_parts;
         worst_part_idx = 0;
-        initial_part = _initial_part;
-        ori_mesh_area = MeshArea(initial_part);
-        ori_mesh_volume = MeshVolume(initial_part);
-        Model ch;
-        initial_part.ComputeAPX(ch);
-        ori_meshCH_volume = MeshVolume(ch);
+        initial_part = parent.initial_part;
+        ori_mesh_area = parent.ori_mesh_area;
+        ori_mesh_volume = parent.ori_mesh_volume;
+        ori_meshCH_volume = parent.ori_meshCH_volume;
         current_cost = 0;
     }
     State State::operator=(const State &_state)
@@ -135,7 +133,7 @@ namespace coacd
         bool flag = Clip(current_parts[worst_part_idx].current_mesh, pos, neg, cutting_plane, cut_area);
         if (!flag)
         {
-            State next_state(params, current_costs, current_parts, initial_part);
+            State next_state(params, current_costs, current_parts, *this);
             next_state.current_cost = INF;
             next_state.current_round = params.mcts_max_depth;
 
@@ -164,7 +162,7 @@ namespace coacd
             _current_costs.push_back(cost_pos);
             _current_costs.push_back(cost_neg);
 
-            State next_state(params, _current_costs, _current_parts, initial_part);
+            State next_state(params, _current_costs, _current_parts, *this);
             _current_costs.clear();
             _current_parts.clear();
 
