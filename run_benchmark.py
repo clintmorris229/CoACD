@@ -10,10 +10,10 @@ unchanged results.
 
 Examples:
     # Time one build on the bundled examples.
-    python scripts/benchmark.py --bin build/main
+    python run_benchmark.py --bin build/main
 
     # Compare two builds (e.g. main vs. a branch).
-    python scripts/benchmark.py --baseline build-main/main --candidate build/main
+    python run_benchmark.py --baseline build-main/main --candidate build/main
 
 Only the Python standard library is needed.
 """
@@ -92,7 +92,7 @@ def main():
     if args.runs < 1:
         parser.error("--runs must be at least 1")
 
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root = os.path.dirname(os.path.abspath(__file__))
     meshes = args.meshes or sorted(glob.glob(os.path.join(root, "examples", "*.obj")))
     if not meshes:
         sys.exit("error: no meshes found")
