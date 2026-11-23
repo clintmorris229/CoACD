@@ -26,11 +26,16 @@ namespace coacd
                                 map<int, int> &vertex_map, vector<vec3d> &final_border, vector<vec3i> &final_triangles);
     void RecordIntersectPoint(Model mesh, map<pair<int, int>, int> &edge_map, int i, int ep0, int ep1, int &idx, vector<vec3d> &border, vec3d point);
     bool Clip(const Model &mesh, Model &pos, Model &neg, Plane &plane, double &cut_area, bool foo = false);
-    bool CreatePlaneRotationMatrix(vector<vec3d> &border, vector<pair<int, int>> border_edges, vec3d &T, double R[3][3], Plane &plane);
-    short Triangulation(vector<vec3d> &border, vector<pair<int, int>> border_edges, vector<vec3i> &border_triangles, Plane &plane);
+    bool CreatePlaneRotationMatrix(vector<vec3d> &border, const vector<pair<int, int>> &border_edges, vec3d &T, double R[3][3], Plane &plane);
+    short Triangulation(vector<vec3d> &border, const vector<pair<int, int>> &border_edges, vector<vec3i> &border_triangles, Plane &plane);
     void PrintEdgeSet(vector<pair<int, int>> edges);
 
-    inline void addPoint(map<int, int> &vertex_map, vector<vec3d> &border, vec3d pt, int id, int &idx)
+    // Lookup-only maps for Clip(). Don't iterate them: the iteration order of
+    // std::unordered_map is unspecified, so the output would depend on it.
+    using ClipVertexMap = std::unordered_map<int, int>;
+    using ClipEdgeMap = std::unordered_map<pair<int, int>, int, EdgeHash>;
+
+    inline void addPoint(ClipVertexMap &vertex_map, vector<vec3d> &border, vec3d pt, int id, int &idx)
     {
         if (vertex_map.find(id) == vertex_map.end())
         {
@@ -54,7 +59,7 @@ namespace coacd
         }
     }
 
-    inline void addEdgePoint(map<pair<int, int>, int> &edge_map, vector<vec3d> &border, vec3d pt, int id1, int id2, int &idx)
+    inline void addEdgePoint(ClipEdgeMap &edge_map, vector<vec3d> &border, vec3d pt, int id1, int id2, int &idx)
     {
         pair<int, int> edge1 = make_pair(id1, id2);
         pair<int, int> edge2 = make_pair(id2, id1);

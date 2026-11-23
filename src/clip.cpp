@@ -26,7 +26,7 @@ namespace coacd
         of.close();
     }
 
-    bool CreatePlaneRotationMatrix(vector<vec3d> &border, vector<pair<int, int>> border_edges, vec3d &T, double R[3][3], Plane &plane)
+    bool CreatePlaneRotationMatrix(vector<vec3d> &border, const vector<pair<int, int>> &border_edges, vec3d &T, double R[3][3], Plane &plane)
     {
         int idx0 = 0;
         int idx1;
@@ -115,7 +115,7 @@ namespace coacd
         return true;
     }
 
-    short Triangulation(vector<vec3d> &border, vector<pair<int, int>> border_edges, vector<vec3i> &border_triangles, Plane &plane)
+    short Triangulation(vector<vec3d> &border, const vector<pair<int, int>> &border_edges, vector<vec3i> &border_triangles, Plane &plane)
     {
         double R[3][3];
         vec3d T;
@@ -434,8 +434,9 @@ namespace coacd
         vector<bool> pos_map(N);
         vector<bool> neg_map(N);
 
-        map<pair<int, int>, int> edge_map;
-        map<int, int> vertex_map;
+        // Only used for lookups and inserts, never iterated.
+        ClipEdgeMap edge_map;
+        ClipVertexMap vertex_map;
 
         for (int i = 0; i < (int)mesh.triangles.size(); i++)
         {
