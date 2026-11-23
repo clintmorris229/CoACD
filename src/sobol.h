@@ -3,6 +3,7 @@ int i4_bit_lo0 ( int n );
 int i4_max ( int i1, int i2 );
 int i4_min ( int i1, int i2 );
 void i4_sobol ( int dim_num, int *seed, float quasi[ ] );
+void i4_sobol_2d ( int *seed, float quasi[2] );
 float *i4_sobol_generate ( int m, int n, int skip );
 int i4_uniform ( int b, int c, int *seed );
 
