@@ -419,7 +419,6 @@ namespace coacd
 
     bool Clip(const Model &mesh, Model &pos, Model &neg, Plane &plane, double &cut_area, bool foo)
     {
-        Model t = mesh;
         vector<vec3d> border;
         vector<vec3d> overlap;
         vector<vec3i> border_triangles, final_triangles;

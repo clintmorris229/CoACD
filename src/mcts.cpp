@@ -268,9 +268,6 @@ namespace coacd
         double tmp;
         double max_cost;
 
-        Model ch;
-        m.ComputeAPX(ch);
-
         Model pos, neg, posCH, negCH;
         flag = Clip(m, pos, neg, first_plane, tmp);
         if (!flag)
