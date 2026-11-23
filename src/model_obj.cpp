@@ -146,8 +146,13 @@ namespace coacd
     {
         /* fast convex hull algorithm */
         bool flag = true;
-        quickhull::QuickHull<float> qh; // Could be double as well
-        vector<quickhull::Vector3<float>> pointCloud;
+        // One QuickHull object and point buffer per thread, reused across calls
+        // to avoid reallocating their buffers: getConvexHull() resets all of
+        // the QuickHull state on every call.
+        thread_local quickhull::QuickHull<float> qh; // Could be double as well
+        thread_local vector<quickhull::Vector3<float>> pointCloud;
+        pointCloud.clear();
+        pointCloud.reserve(points.size());
         // Add points to point cloud
         for (int i = 0; i < (int)points.size(); i++)
         {
@@ -163,6 +168,8 @@ namespace coacd
         }
         const auto &indexBuffer = hull.getIndexBuffer();
         const auto &vertexBuffer = hull.getVertexBuffer();
+        convex.points.reserve(vertexBuffer.size());
+        convex.triangles.reserve(indexBuffer.size() / 3);
         for (int i = 0; i < (int)vertexBuffer.size(); i++)
         {
             convex.points.push_back({vertexBuffer[i].x, vertexBuffer[i].y, vertexBuffer[i].z});
