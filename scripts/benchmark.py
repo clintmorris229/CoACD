@@ -38,8 +38,11 @@ def run_once(binary, mesh, extra_args, timeout):
         cmd = [binary, "-i", mesh, "-o", output, "-ro", os.path.join(tmp, "remesh.obj")]
         cmd += extra_args
         start = time.perf_counter()
-        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                                timeout=timeout)
+        try:
+            result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                    timeout=timeout)
+        except subprocess.TimeoutExpired:
+            sys.exit(f"error: {' '.join(cmd)} timed out after {timeout} s")
         seconds = time.perf_counter() - start
         if result.returncode != 0 or not os.path.exists(output):
             sys.exit(f"error: {' '.join(cmd)} failed:\n{result.stderr.decode(errors='replace')}")
@@ -86,11 +89,16 @@ def main():
     parser.add_argument("--timeout", type=float, default=3600, help="timeout per run, in seconds")
     parser.add_argument("--json", help="also write the results to this JSON file")
     args = parser.parse_args()
+    if args.runs < 1:
+        parser.error("--runs must be at least 1")
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     meshes = args.meshes or sorted(glob.glob(os.path.join(root, "examples", "*.obj")))
     if not meshes:
         sys.exit("error: no meshes found")
+    names = [os.path.splitext(os.path.basename(mesh))[0] for mesh in meshes]
+    if len(set(names)) != len(names):
+        sys.exit("error: mesh file names must be unique")
     extra_args = ["-s", str(args.seed)] + shlex.split(args.args)
     binaries = {"baseline": args.baseline}
     if args.candidate:
