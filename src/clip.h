@@ -30,6 +30,8 @@ namespace coacd
     short Triangulation(vector<vec3d> &border, const vector<pair<int, int>> &border_edges, vector<vec3i> &border_triangles, Plane &plane);
     void PrintEdgeSet(vector<pair<int, int>> edges);
 
+    // Lookup-only maps for Clip(). Don't iterate them: the iteration order of
+    // std::unordered_map is unspecified, so the output would depend on it.
     using ClipVertexMap = std::unordered_map<int, int>;
     using ClipEdgeMap = std::unordered_map<pair<int, int>, int, EdgeHash>;
 
