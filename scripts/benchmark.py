@@ -2,17 +2,18 @@
 """Benchmark the CoACD command line tool and check that its output is stable.
 
 Runs the `main` executable on a set of meshes with a fixed seed and reports,
-for each mesh, the wall time, the number of convex hulls and a hash of the
-output OBJ. Given a second executable, it runs both and reports the speedup
-and whether the outputs are identical, so a change can be checked for both
-performance and unchanged results.
+for each mesh, the median wall time over several runs, how much the run times
+vary, the number of convex hulls and a hash of the output OBJ. Given a second
+executable, it alternates runs of the two and reports the speedup and whether
+the outputs are identical, so a change can be checked for both performance and
+unchanged results.
 
 Examples:
     # Time one build on the bundled examples.
     python scripts/benchmark.py --bin build/main
 
-    # Compare two builds (e.g. main vs. a branch), 3 runs each.
-    python scripts/benchmark.py --baseline build-main/main --candidate build/main --runs 3
+    # Compare two builds (e.g. main vs. a branch).
+    python scripts/benchmark.py --baseline build-main/main --candidate build/main
 
 Only the Python standard library is needed.
 """
@@ -48,16 +49,27 @@ def run_once(binary, mesh, extra_args, timeout):
     return seconds, hulls, hashlib.sha256(data).hexdigest()
 
 
-def benchmark(binary, mesh, extra_args, runs, timeout):
-    times, hulls, digest = [], None, None
+def benchmark(binaries, mesh, extra_args, runs, timeout):
+    """Runs each binary `runs` times on `mesh`, alternating between them so that
+    changes in machine load affect all of them alike."""
+    times = {key: [] for key in binaries}
+    outputs = {}
     for _ in range(runs):
-        seconds, run_hulls, run_digest = run_once(binary, mesh, extra_args, timeout)
-        if digest is not None and run_digest != digest:
-            print(f"warning: {os.path.basename(mesh)}: output differs between runs of {binary}",
-                  file=sys.stderr)
-        times.append(seconds)
-        hulls, digest = run_hulls, run_digest
-    return {"seconds": statistics.median(times), "hulls": hulls, "sha256": digest}
+        for key, binary in binaries.items():
+            seconds, hulls, digest = run_once(binary, mesh, extra_args, timeout)
+            if key in outputs and outputs[key][1] != digest:
+                print(f"warning: {os.path.basename(mesh)}: output differs between runs of {binary}",
+                      file=sys.stderr)
+            outputs[key] = (hulls, digest)
+            times[key].append(seconds)
+    results = {}
+    for key in binaries:
+        median = statistics.median(times[key])
+        # Half the range of the run times, relative to the median.
+        spread = (max(times[key]) - min(times[key])) / 2 / median * 100
+        results[key] = {"seconds": median, "spread_percent": spread, "times": times[key],
+                        "hulls": outputs[key][0], "sha256": outputs[key][1]}
+    return results
 
 
 def main():
@@ -67,7 +79,8 @@ def main():
                         help="CoACD `main` executable to benchmark (the baseline when comparing)")
     parser.add_argument("--candidate", help="second `main` executable to compare against the baseline")
     parser.add_argument("--meshes", nargs="+", help="input OBJ files (default: examples/*.obj)")
-    parser.add_argument("--runs", type=int, default=1, help="runs per mesh; the median time is reported")
+    parser.add_argument("--runs", type=int, default=3,
+                        help="runs per mesh and executable (default: 3); the median time is reported")
     parser.add_argument("--seed", type=int, default=0, help="seed passed to CoACD (default: 0)")
     parser.add_argument("--args", default="", help='extra arguments for `main`, e.g. "-t 0.1 -nm"')
     parser.add_argument("--timeout", type=float, default=3600, help="timeout per run, in seconds")
@@ -83,30 +96,34 @@ def main():
     if args.candidate:
         binaries["candidate"] = args.candidate
 
+    # The +-% columns are half the range of the run times, relative to the median.
     results = {}
     if args.candidate:
-        print(f"{'mesh':<20} {'baseline s':>11} {'candidate s':>12} {'speedup':>8} {'hulls':>6}  identical")
+        print(f"{'mesh':<20} {'baseline s':>11} {'+-%':>5} {'candidate s':>12} {'+-%':>5} "
+              f"{'speedup':>8} {'hulls':>6}  identical")
     else:
-        print(f"{'mesh':<20} {'seconds':>9} {'hulls':>6}  sha256")
+        print(f"{'mesh':<20} {'seconds':>9} {'+-%':>5} {'hulls':>6}  sha256")
     for mesh in meshes:
         name = os.path.splitext(os.path.basename(mesh))[0]
-        results[name] = {key: benchmark(binary, mesh, extra_args, args.runs, args.timeout)
-                         for key, binary in binaries.items()}
+        results[name] = benchmark(binaries, mesh, extra_args, args.runs, args.timeout)
         base = results[name]["baseline"]
         if args.candidate:
             cand = results[name]["candidate"]
             same = base["sha256"] == cand["sha256"]
             hulls = str(base["hulls"]) if same else f"{base['hulls']}/{cand['hulls']}"
-            print(f"{name:<20} {base['seconds']:>11.2f} {cand['seconds']:>12.2f} "
+            print(f"{name:<20} {base['seconds']:>11.2f} {base['spread_percent']:>5.1f} "
+                  f"{cand['seconds']:>12.2f} {cand['spread_percent']:>5.1f} "
                   f"{base['seconds'] / cand['seconds']:>7.2f}x {hulls:>6}  {'yes' if same else 'NO'}")
         else:
-            print(f"{name:<20} {base['seconds']:>9.2f} {base['hulls']:>6}  {base['sha256'][:16]}")
+            print(f"{name:<20} {base['seconds']:>9.2f} {base['spread_percent']:>5.1f} "
+                  f"{base['hulls']:>6}  {base['sha256'][:16]}")
         sys.stdout.flush()
 
     if args.candidate:
         total_base = sum(r["baseline"]["seconds"] for r in results.values())
         total_cand = sum(r["candidate"]["seconds"] for r in results.values())
-        print(f"{'total':<20} {total_base:>11.2f} {total_cand:>12.2f} {total_base / total_cand:>7.2f}x")
+        print(f"{'total':<20} {total_base:>11.2f} {'':>5} {total_cand:>12.2f} {'':>5} "
+              f"{total_base / total_cand:>7.2f}x")
     if args.json:
         with open(args.json, "w") as f:
             json.dump({"binaries": binaries, "args": extra_args, "runs": args.runs,

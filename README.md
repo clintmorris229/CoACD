@@ -168,9 +168,9 @@ bash run_example.sh
 
 `scripts/benchmark.py` runs `main` on the example meshes with a fixed seed and reports the time, the number of convex hulls and a hash of the output for each mesh. To check a change for speed and unchanged results, build `main` before and after the change and compare the two:
 ```
-python scripts/benchmark.py --baseline build-before/main --candidate build/main --runs 3
+python scripts/benchmark.py --baseline build-before/main --candidate build/main
 ```
-It prints the speedup per mesh and whether the outputs are identical, and exits with an error if any output differs. Run `python scripts/benchmark.py --help` for more options, such as other meshes or parameters.
+It alternates runs of the two builds (3 each by default) and prints the median times, how much they vary between runs, the speedup per mesh, and whether the outputs are identical. It exits with an error if any output differs. Speedups smaller than the variation aren't meaningful. Run `python scripts/benchmark.py --help` for more options, such as other meshes or parameters.
 
 ## Parameters
 
