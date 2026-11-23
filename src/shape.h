@@ -83,9 +83,25 @@ namespace coacd
     bool SameVectorDirection(vec3d v, vec3d w);
     vec3d CrossProduct(vec3d v, vec3d w);
     vec3d CalFaceNormal(vec3d p1, vec3d p2, vec3d p3);
-    double Area(vec3d p0, vec3d p1, vec3d p2);
-    double Volume(vec3d p1, vec3d p2, vec3d p3);
     void Diagonalize(const array<array<double, 3>, 3>& A, array<array<double, 3>, 3>& Q, array<array<double, 3>, 3>& D);
+
+    inline double Area(const vec3d &p0, const vec3d &p1, const vec3d &p2)
+    {
+        return 0.5 * sqrt(pow(p1[0] * p0[1] - p2[0] * p0[1] - p0[0] * p1[1] + p2[0] * p1[1] + p0[0] * p2[1] - p1[0] * p2[1], 2) +
+                          pow(p1[0] * p0[2] - p2[0] * p0[2] - p0[0] * p1[2] + p2[0] * p1[2] + p0[0] * p2[2] - p1[0] * p2[2], 2) +
+                          pow(p1[1] * p0[2] - p2[1] * p0[2] - p0[1] * p1[2] + p2[1] * p1[2] + p0[1] * p2[2] - p1[1] * p2[2], 2));
+    }
+
+    inline double Volume(const vec3d &p1, const vec3d &p2, const vec3d &p3)
+    {
+        double v321 = p3[0] * p2[1] * p1[2];
+        double v231 = p2[0] * p3[1] * p1[2];
+        double v312 = p3[0] * p1[1] * p2[2];
+        double v132 = p1[0] * p3[1] * p2[2];
+        double v213 = p2[0] * p1[1] * p3[2];
+        double v123 = p1[0] * p2[1] * p3[2];
+        return (1.0 / 6.0) * (-v321 + v231 + v312 - v132 - v213 + v123);
+    }
 
     inline double pt_norm(vec3d p)
     {
