@@ -2,20 +2,9 @@
 #include "process.h"
 #include "CDTUtils.h"
 #include "CDT.h"
-#include <cstdint>
-#include <unordered_map>
 
 namespace coacd
 {
-    // Hash for edges given as pairs of vertex indices.
-    struct EdgeHash
-    {
-        size_t operator()(const pair<int, int> &e) const
-        {
-            uint64_t key = ((uint64_t)(uint32_t)e.first << 32) | (uint32_t)e.second;
-            return (size_t)(key * 0x9E3779B97F4A7C15ULL >> 16);
-        }
-    };
     void Writepoints(vector<array<double, 2>> points, string filename)
     {
         std::ofstream os(filename);

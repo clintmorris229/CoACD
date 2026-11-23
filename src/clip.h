@@ -1,13 +1,25 @@
 #pragma once
 
 #include "model_obj.h"
+#include <cstdint>
 #include <deque>
+#include <unordered_map>
 
 using std::deque;
 using std::endl;
 
 namespace coacd
 {
+    // Hash for edges given as pairs of vertex indices.
+    struct EdgeHash
+    {
+        size_t operator()(const pair<int, int> &e) const
+        {
+            uint64_t key = ((uint64_t)(uint32_t)e.first << 32) | (uint32_t)e.second;
+            return (size_t)(key * 0x9E3779B97F4A7C15ULL >> 16);
+        }
+    };
+
     void SimpleCyclesFromEdges(const vector<pair<int, int>> edges, vector<vector<int>> &simple_cycles);
     void FindCycleDirection(vector<vec3d> border, vector<vector<int>> cycles, Plane plane, map<pair<int, int>, bool> &cycles_dir);
     void RemoveOutlierTriangles(const vector<vec3d> &border, const vector<vec3d> &overlap, const vector<pair<int, int>> &border_edges, const vector<vec3i> &border_triangles, int oriN,
