@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model_obj.h"
+#include <cstdint>
 #include <deque>
 #include <unordered_map>
 
@@ -9,10 +10,20 @@ using std::endl;
 
 namespace coacd
 {
+    // Hash for edges given as pairs of vertex indices.
+    struct EdgeHash
+    {
+        size_t operator()(const pair<int, int> &e) const
+        {
+            uint64_t key = ((uint64_t)(uint32_t)e.first << 32) | (uint32_t)e.second;
+            return (size_t)(key * 0x9E3779B97F4A7C15ULL >> 16);
+        }
+    };
+
     void SimpleCyclesFromEdges(const vector<pair<int, int>> edges, vector<vector<int>> &simple_cycles);
     void FindCycleDirection(vector<vec3d> border, vector<vector<int>> cycles, Plane plane, map<pair<int, int>, bool> &cycles_dir);
-    void RemoveOutlierTriangles(vector<vec3d> border, vector<vec3d> overlap, vector<pair<int, int>> border_edges, int oriN,
-                                vector<vec3i> border_triangles, vector<vec3i> &final_triangles);
+    void RemoveOutlierTriangles(const vector<vec3d> &border, const vector<vec3d> &overlap, const vector<pair<int, int>> &border_edges, const vector<vec3i> &border_triangles, int oriN,
+                                map<int, int> &vertex_map, vector<vec3d> &final_border, vector<vec3i> &final_triangles);
     void RecordIntersectPoint(Model mesh, map<pair<int, int>, int> &edge_map, int i, int ep0, int ep1, int &idx, vector<vec3d> &border, vec3d point);
     bool Clip(const Model &mesh, Model &pos, Model &neg, Plane &plane, double &cut_area, bool foo = false);
     bool CreatePlaneRotationMatrix(vector<vec3d> &border, const vector<pair<int, int>> &border_edges, vec3d &T, double R[3][3], Plane &plane);
@@ -84,7 +95,7 @@ namespace coacd
         }
     }
 
-    inline bool FaceOverlap(map<int, bool> overlap_map, vec3i triangle)
+    inline bool FaceOverlap(const map<int, bool> &overlap_map, const vec3i &triangle)
     {
         int idx0 = triangle[0], idx1 = triangle[1], idx2 = triangle[2];
         if (overlap_map.find(idx0) == overlap_map.end() && overlap_map.find(idx1) == overlap_map.end() &&
