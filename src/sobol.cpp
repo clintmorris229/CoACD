@@ -28690,3 +28690,102 @@ void timestamp ( )
   return;
 # undef TIME_SIZE
 }
+//****************************************************************************80
+
+void i4_sobol_2d ( int *seed, float quasi[2] )
+
+//****************************************************************************80
+//
+//  Purpose:
+//
+//    I4_SOBOL_2D returns the same values as I4_SOBOL ( 2, SEED, QUASI ).
+//
+//  Discussion:
+//
+//    I4_SOBOL keeps the running state in static variables, so it is not
+//    thread safe, and it re-walks the sequence from the start (or from the
+//    last index) whenever SEED is not the previous SEED plus one.
+//
+//    Element SEED of the sequence is the XOR of the direction numbers
+//    selected by the bits of the Gray code SEED ^ ( SEED >> 1 ), so this
+//    version computes it directly from read-only tables, in at most LOG_MAX
+//    steps, and can be called from several threads at once.
+//
+//  Parameters:
+//
+//    Input/output, int *SEED, as in I4_SOBOL.
+//
+//    Output, float QUASI[2], the quasirandom vector.
+//
+{
+# define LOG_MAX 30
+  struct table
+  {
+    int v[2][LOG_MAX];
+    float recipd;
+    table ( )
+    {
+      int i;
+      int j;
+      int l;
+//
+//  Same direction numbers as I4_SOBOL for DIM_NUM = 2: row 1 is all ones,
+//  row 2 comes from POLY[1] = 3, which has degree 1.
+//
+      for ( j = 0; j < LOG_MAX; j++ )
+      {
+        v[0][j] = 1;
+      }
+      v[1][0] = 1;
+      for ( j = 1; j < LOG_MAX; j++ )
+      {
+        v[1][j] = v[1][j-1] ^ ( 2 * v[1][j-1] );
+      }
+      l = 1;
+      for ( j = LOG_MAX-2; 0 <= j; j-- )
+      {
+        l = 2 * l;
+        for ( i = 0; i < 2; i++ )
+        {
+          v[i][j] = v[i][j] * l;
+        }
+      }
+      recipd = 1.0E+00 / ( ( float ) ( 2 * l ) );
+    }
+  };
+  static const table t;
+  unsigned int gray;
+  int j;
+  int q0 = 0;
+  int q1 = 0;
+
+  if ( *seed < 0 )
+  {
+    *seed = 0;
+  }
+//
+//  The tables have LOG_MAX direction numbers, so like I4_SOBOL, reject seeds
+//  that would need more.
+//
+  if ( ( ( unsigned int ) *seed >> 1 ) >= ( 1u << ( LOG_MAX - 1 ) ) )
+  {
+    cout << "\n";
+    cout << "I4_SOBOL_2D - Fatal error!\n";
+    cout << "  The value of SEED seems to be too large!\n";
+    throw std::runtime_error("SEED too large");
+  }
+  gray = ( unsigned int ) *seed ^ ( ( unsigned int ) *seed >> 1 );
+  for ( j = 0; gray != 0; j++, gray = gray >> 1 )
+  {
+    if ( gray & 1 )
+    {
+      q0 = q0 ^ t.v[0][j];
+      q1 = q1 ^ t.v[1][j];
+    }
+  }
+  quasi[0] = ( ( float ) q0 ) * t.recipd;
+  quasi[1] = ( ( float ) q1 ) * t.recipd;
+  *seed = *seed + 1;
+  return;
+# undef LOG_MAX
+}

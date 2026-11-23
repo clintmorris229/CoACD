@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <mutex>
 #include "model_obj.h"
 #include "process.h"
 #include "quickhull/QuickHull.hpp"
@@ -348,7 +347,6 @@ namespace coacd
     {
         if (resolution == 0)
             return;
-        static std::mutex sobol_mutex;
         double aObj = 0;
         for (int i = 0; i < (int)triangles.size(); i++)
         {
@@ -389,10 +387,7 @@ namespace coacd
                 else
                 {
                     //// quasirandom sample
-                    {
-                        std::lock_guard<std::mutex> lock(sobol_mutex);
-                        i4_sobol(2, &seed, r);
-                    }
+                    i4_sobol_2d(&seed, r);
                     a = r[0];
                     b = r[1];
                 }
