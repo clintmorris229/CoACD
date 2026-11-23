@@ -65,7 +65,9 @@ namespace coacd
     State();
     State(Params _params);
     State(Params _params, Model &_initial_part);
-    State(Params _params, vector<double> &_current_costs, vector<Part> &_current_parts, Model &_initial_part);
+    // Takes initial_part and the values derived from it from the parent state,
+    // since they are the same for every state of a search.
+    State(Params _params, vector<double> &_current_costs, vector<Part> &_current_parts, const State &parent);
 
     State operator=(const State &_state);
 
