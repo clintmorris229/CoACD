@@ -30,16 +30,8 @@ namespace coacd
     short Triangulation(vector<vec3d> &border, const vector<pair<int, int>> &border_edges, vector<vec3i> &border_triangles, Plane &plane);
     void PrintEdgeSet(vector<pair<int, int>> edges);
 
-    // Hash for the (vertex, vertex) keys of Clip's edge map.
-    struct VertexPairHash
-    {
-        size_t operator()(const pair<int, int> &p) const
-        {
-            return std::hash<long long>()(((long long)p.first << 32) ^ (unsigned int)p.second);
-        }
-    };
     using ClipVertexMap = std::unordered_map<int, int>;
-    using ClipEdgeMap = std::unordered_map<pair<int, int>, int, VertexPairHash>;
+    using ClipEdgeMap = std::unordered_map<pair<int, int>, int, EdgeHash>;
 
     inline void addPoint(ClipVertexMap &vertex_map, vector<vec3d> &border, vec3d pt, int id, int &idx)
     {
