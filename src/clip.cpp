@@ -200,13 +200,15 @@ namespace coacd
         return 0;
     }
 
-    void RemoveOutlierTriangles(vector<vec3d> border, vector<vec3d> overlap, vector<pair<int, int>> border_edges, vector<vec3i> border_triangles, int oriN,
+    void RemoveOutlierTriangles(const vector<vec3d> &border, const vector<vec3d> &overlap, const vector<pair<int, int>> &border_edges, const vector<vec3i> &border_triangles, int oriN,
                                 map<int, int> &vertex_map, vector<vec3d> &final_border, vector<vec3i> &final_triangles)
     {
         deque<pair<int, int>> BFS_edges(border_edges.begin(), border_edges.end());
-        map<pair<int, int>, pair<int, int>> edge_map;
-        map<pair<int, int>, bool> border_map;
-        map<pair<int, int>, bool> same_edge_map;
+        // These maps are only used for lookups, never iterated, so hash maps
+        // give the same results as ordered maps.
+        std::unordered_map<pair<int, int>, pair<int, int>, EdgeHash> edge_map;
+        std::unordered_map<pair<int, int>, bool, EdgeHash> border_map;
+        std::unordered_map<pair<int, int>, bool, EdgeHash> same_edge_map;
         map<int, bool> overlap_map;
         const int v_lenth = (int)border.size();
         const int f_lenth = (int)border_triangles.size();
