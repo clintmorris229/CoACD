@@ -28763,6 +28763,17 @@ void i4_sobol_2d ( int *seed, float quasi[2] )
   {
     *seed = 0;
   }
+//
+//  The tables have LOG_MAX direction numbers, so like I4_SOBOL, reject seeds
+//  that would need more.
+//
+  if ( ( ( unsigned int ) *seed >> 1 ) >= ( 1u << ( LOG_MAX - 1 ) ) )
+  {
+    cout << "\n";
+    cout << "I4_SOBOL_2D - Fatal error!\n";
+    cout << "  The value of SEED seems to be too large!\n";
+    throw std::runtime_error("SEED too large");
+  }
   gray = ( unsigned int ) *seed ^ ( ( unsigned int ) *seed >> 1 );
   for ( j = 0; gray != 0; j++, gray = gray >> 1 )
   {
